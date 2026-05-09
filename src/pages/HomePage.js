@@ -143,7 +143,7 @@ const HomePage = () => {
             className="absolute z-10"
           >
             {/* directory: public/images/samples/filename.jpg */}
-            <PhotoboothStrip imageUrl="/images/samples/Red Playful Friendship Photo Booth Bookmark.jpg" />
+            <PhotoboothStrip imageUrl="/images/samples/photobooth-sample-2.jpg" />
           </motion.div>
           
           {/* FOTO 2 (Tengah, Paling Depan) */}
