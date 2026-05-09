@@ -165,7 +165,7 @@ const HomePage = () => {
             className="absolute z-20"
           >
             {/* directory: public/images/samples/filename.jpg */}
-            <PhotoboothStrip imageUrl="/images/samples/Red and White Playful Friends Photo Booth Bookmark.jpg" />
+            <PhotoboothStrip imageUrl="/images/samples/photobooth-sample-1.jpg" />
           </motion.div>
         </div>
       </section>
