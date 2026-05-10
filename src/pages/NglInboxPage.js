@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { supabase, signInWithGoogle } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 
 const MessageCard = ({ msg, onRead, onPin, onDelete }) => {
