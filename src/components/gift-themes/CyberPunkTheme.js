@@ -411,4 +411,4 @@ const CyberpunkTheme = ({ data }) => {
   );
 };
 
-export default CyberpunkTheme;
+export default CyberPunkTheme;
