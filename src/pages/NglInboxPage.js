@@ -162,12 +162,12 @@ const NglInboxPage = () => {
           <p className="font-body text-charcoal/70 text-sm mb-6 leading-relaxed">
             Login untuk melihat pesan anonimmu dan mendapatkan link NGL-mu!
           </p>
-          <button
-            onClick={signInWithGoogle}
-            className="clay-btn bg-retro-red text-white w-full py-4 text-lg"
+          <Link
+            to="/login"
+            className="clay-btn bg-retro-red text-white w-full py-4 text-lg block text-center"
           >
-            🔑 Login dengan Google
-          </button>
+            🔑 Pergi ke Halaman Login
+          </Link>
         </div>
       </main>
     );
