@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 
 // IMPORT DARI PUSAT KONTROL THEME YANG BARU
-import { THEME_COMPONENTS } from "../components/gift-themes"; 
+import { getThemeConfig as getTheme } from "../components/gift-themes";
 
 // ─────────────────────────────────────────────────────────────
 // LOADING VIEW (Tetap Butter & Pink Neo-Brutalism)
