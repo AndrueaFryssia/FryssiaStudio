@@ -19,7 +19,7 @@ export const THEMES = {
 export const THEME_COMPONENTS = {
   pixel: PixelTheme,
   valentine: ValentineTheme,
-  cyberpunk: CyberpunkTheme,
+  cyberpunk: CyberPunkTheme,
   kraft: KraftTheme,
   pastel: PastelTheme,
 };
