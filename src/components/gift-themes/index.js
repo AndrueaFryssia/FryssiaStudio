@@ -2,7 +2,7 @@
 
 import PixelTheme, { PIXEL_THEME } from "./PixelTheme";
 import ValentineTheme, { VALENTINE_THEME } from "./ValentineTheme";
-import CyberpunkTheme, { CYBERPUNK_THEME } from "./CyberPunkTheme";
+import CyberpunkTheme, { CYBERPUNK_THEME } from "./CyberpunkTheme";
 import KraftTheme, { KRAFT_THEME } from "./KraftTheme";
 import PastelTheme, { PASTEL_THEME } from "./PastelTheme";
 
@@ -19,7 +19,7 @@ export const THEMES = {
 export const THEME_COMPONENTS = {
   pixel: PixelTheme,
   valentine: ValentineTheme,
-  cyberpunk: CyberPunkTheme,
+  cyberpunk: CyberpunkTheme, // FIX: Sekarang sudah pakai p kecil, cocok dengan import di atas
   kraft: KraftTheme,
   pastel: PastelTheme,
 };
