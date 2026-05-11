@@ -122,11 +122,21 @@ const AdminPage = () => {
   const [visualCoords, setVisualCoords] = useState([]);
   const frameFileRef = useRef();
 
+  // ─────────────────────────────────────────────────────────────────
+  // PERBAIKAN LOGIC REDIRECT (ANTI-LOOPING)
+  // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!loading && !isAdmin) {
-        navigate("/"); // Tendang kalau bukan admin
+    // Tunggu sampai sistem selesai ngecek session user (loading = false)
+    if (!loading) {
+      if (!user) {
+        // Kalau nggak ada user (belum login), tendang ke halaman login
+        navigate("/login", { replace: true });
+      } else if (!isAdmin) {
+        // Kalau udah login tapi BUKAN ADMIN, tendang ke home
+        navigate("/", { replace: true });
+      }
     }
-  }, [isAdmin, loading]);
+  }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
     fetchStickers(); fetchFrames();
@@ -252,7 +262,13 @@ const AdminPage = () => {
     fetchFrames();
   };
 
-  if (loading) return <div className="min-h-screen bg-charcoal flex items-center justify-center font-retro text-butter">Loading Admin...</div>;
+  // Tampilkan loading screen SEBELUM ngerender isi admin page
+  if (loading) {
+    return <div className="min-h-screen bg-[#111] flex items-center justify-center font-retro text-butter text-2xl animate-pulse">Checking Access...</div>;
+  }
+
+  // Kalau ternyata dia masuk tapi bukan admin, JANGAN render isinya (mencegah flash)
+  if (!user || !isAdmin) return null;
 
   const tabs = [{ id: "frames", label: "📸 Frame Booth" }, { id: "stickers", label: "✦ Stiker Editor" }];
 
@@ -274,7 +290,7 @@ const AdminPage = () => {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* ==================== TAB STIKER (RE-FIXED) ==================== */}
+          {/* ==================== TAB STIKER ==================== */}
           {activeTab === "stickers" && (
             <motion.div key="stc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="grid lg:grid-cols-[400px_1fr] gap-8">
               
@@ -330,7 +346,7 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {/* ==================== TAB FRAMES (RE-FIXED) ==================== */}
+          {/* ==================== TAB FRAMES ==================== */}
           {activeTab === "frames" && (
             <motion.div key="frm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="grid lg:grid-cols-[450px_1fr] gap-8">
               
