@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom"; // IMPORT INI
 import { supabase } from "../lib/supabase";
 
 const LoginPage = () => {
-  const [isLogin, setIsLogin] = useState(true); // Toggle Login / Register
+  const navigate = useNavigate(); // INISIALISASI
+  const [isLogin, setIsLogin] = useState(true); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,11 +19,14 @@ const LoginPage = () => {
     try {
       if (isLogin) {
         // PROSES LOGIN
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // RAHASIA ANTI-TENDANG: Paksa browser pindah secara fisik biar data profil sempat ke-load
-        window.location.href = "/admin"; 
+        // FIX: Pindah halaman secara internal tanpa refresh total
+        // replace: true gunanya biar user ga bisa balik lagi ke page login pake tombol back
+        if (data.user) {
+          navigate("/admin", { replace: true });
+        }
         
       } else {
         // PROSES BUAT AKUN (REGISTER)
@@ -29,12 +34,13 @@ const LoginPage = () => {
         if (error) throw error;
 
         alert("Akun berhasil dibuat! Silakan klik Login.");
-        setIsLogin(true); // Balikin ke mode login
+        setIsLogin(true);
         setPassword("");
+        setLoading(false);
       }
     } catch (error) {
       setErrorMsg(error.message);
-      setLoading(false); // Loading cuma dimatiin kalau error
+      setLoading(false);
     }
   };
 
