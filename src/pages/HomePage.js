@@ -112,7 +112,7 @@ const HomePage = () => {
         <div className="w-full md:w-1/2 text-center md:text-left z-20">
           <motion.div {...fadeUp(0)} className="inline-block mb-6 border-2 border-slate-800 shadow-[4px_4px_0_#f472b6] bg-white px-4 py-2">
             <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-slate-800">
-              ✧ Welcome to Fryssia ✧
+              ✧ Lets Make a Memory ✧
             </span>
           </motion.div>
 
