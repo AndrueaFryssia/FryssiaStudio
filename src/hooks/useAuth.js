@@ -8,53 +8,66 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fungsi buat ambil data profile dari tabel profiles
-  const fetchProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-      if (!error) setProfile(data);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-    }
-  };
-
   useEffect(() => {
-    // 1. Ambil session awal saat pertama kali web dibuka
+    let mounted = true; // Pasang pengaman biar state ga bocor (Memory Leak)
+
+    const fetchProfile = async (userId) => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        
+        if (mounted && !error) setProfile(data);
+        if (error) console.error("Error dari DB:", error);
+      } catch (err) {
+        console.error("Gagal narik profil:", err);
+      }
+    };
+
+    // 1. Fungsi Cek Sesi Pertama Kali Buka Web
     const initAuth = async () => {
-      setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
       
+      if (mounted) setUser(currentUser);
+
       if (currentUser) {
         await fetchProfile(currentUser.id);
       }
-      setLoading(false);
+      
+      if (mounted) setLoading(false); // Loading dimatiin cuma kalau proses ini beres
     };
 
     initAuth();
 
-    // 2. Pantau perubahan status (Login / Logout / Token Refresh)
+    // 2. Fungsi Cek Pas User Mencet Login / Logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+      // Abaikan INITIAL_SESSION karena udah diurus sama initAuth di atas
+      if (event === 'INITIAL_SESSION') return;
 
-      if (event === "SIGNED_IN" && currentUser) {
+      if (mounted) setLoading(true); // Nyalain loading pas proses ganti akun
+      
+      const currentUser = session?.user ?? null;
+      if (mounted) setUser(currentUser);
+
+      if (currentUser) {
+        // Kalau Login
         await fetchProfile(currentUser.id);
-        setLoading(false);
-      } else if (event === "SIGNED_OUT") {
-        setProfile(null);
-        setLoading(false);
       } else {
-        setLoading(false);
+        // Kalau Logout
+        if (mounted) setProfile(null);
       }
+
+      if (mounted) setLoading(false); // Matiin loading pas prosesnya tuntas
     });
 
-    return () => subscription?.unsubscribe();
+    // Bersihin listener kalau user tutup webnya
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const isAdmin = profile?.is_admin === true;
