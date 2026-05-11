@@ -103,6 +103,7 @@ const AdminPage = () => {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   
+  const [checking, setChecking] = useState(true); // Tambahan state buat nahan blank screen
   const [activeTab, setActiveTab] = useState("frames"); 
   const [stickers, setStickers] = useState([]);
   const [frames, setFrames] = useState([]);
@@ -123,24 +124,31 @@ const AdminPage = () => {
   const frameFileRef = useRef();
 
   // ─────────────────────────────────────────────────────────────────
-  // PERBAIKAN LOGIC REDIRECT (ANTI-LOOPING)
+  // PERBAIKAN LOGIC REDIRECT (ANTI-LOOPING & ANTI-BLANK)
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Tunggu sampai sistem selesai ngecek session user (loading = false)
     if (!loading) {
       if (!user) {
-        // Kalau nggak ada user (belum login), tendang ke halaman login
+        console.log("Akses Ditolak: Belum Login");
         navigate("/login", { replace: true });
       } else if (!isAdmin) {
-        // Kalau udah login tapi BUKAN ADMIN, tendang ke home
+        console.log("Akses Ditolak: Bukan Admin!");
+        alert("Kamu bukan Admin! Izin ditolak.");
         navigate("/", { replace: true });
+      } else {
+        // Kalau lolos semua ujian (Udah login & beneran admin)
+        setChecking(false);
       }
     }
   }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
-    fetchStickers(); fetchFrames();
-  }, []); 
+    // Jangan nge-fetch data kalau belom lolos pengecekan (biar ga error RLS)
+    if (!checking) {
+      fetchStickers(); 
+      fetchFrames();
+    }
+  }, [checking]); 
 
   // Auto-generate kotak awal kalau slot diganti
   useEffect(() => {
@@ -262,13 +270,17 @@ const AdminPage = () => {
     fetchFrames();
   };
 
-  // Tampilkan loading screen SEBELUM ngerender isi admin page
-  if (loading) {
-    return <div className="min-h-screen bg-[#111] flex items-center justify-center font-retro text-butter text-2xl animate-pulse">Checking Access...</div>;
+  // Tampilkan loading screen SEBELUM ngerender isi admin page ATAU saat lagi ngecek akses
+  if (loading || checking) {
+    return (
+      <div className="min-h-screen bg-[#111] flex flex-col items-center justify-center font-retro">
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="text-4xl text-butter mb-4">
+          ⚙️
+        </motion.div>
+        <p className="text-butter/60 text-xs tracking-widest font-mono">VERIFYING ADMIN ACCESS...</p>
+      </div>
+    );
   }
-
-  // Kalau ternyata dia masuk tapi bukan admin, JANGAN render isinya (mencegah flash)
-  if (!user || !isAdmin) return null;
 
   const tabs = [{ id: "frames", label: "📸 Frame Booth" }, { id: "stickers", label: "✦ Stiker Editor" }];
 
