@@ -6,11 +6,14 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  
+  // Loading cuma nyala PAS AWAL BANGET web dibuka
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true; // Pasang pengaman biar state ga bocor (Memory Leak)
+    let mounted = true;
 
+    // Fungsi khusus buat narik data admin
     const fetchProfile = async (userId) => {
       try {
         const { data, error } = await supabase
@@ -19,57 +22,58 @@ export const AuthProvider = ({ children }) => {
           .eq("id", userId)
           .single();
         
-        if (mounted && !error) setProfile(data);
-        if (error) console.error("Error dari DB:", error);
+        if (error) throw error;
+        if (mounted) setProfile(data);
       } catch (err) {
-        console.error("Gagal narik profil:", err);
+        console.error("Gagal narik profil:", err.message);
       }
     };
 
-    // 1. Fungsi Cek Sesi Pertama Kali Buka Web
+    // 1. Fungsi pas web pertama kali dimuat
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      
-      if (mounted) setUser(currentUser);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        const currentUser = session?.user ?? null;
+        if (mounted) setUser(currentUser);
 
-      if (currentUser) {
-        await fetchProfile(currentUser.id);
+        // Tunggu profil selesai ditarik kalau ada user
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
+        }
+      } catch (error) {
+        console.error("Auth init error:", error.message);
+      } finally {
+        // THE MAGIC TRICK: Pake 'finally' ngasih garansi 100% loading bakal dimatiin,
+        // entah itu error, sukses, ataupun datanya kosong.
+        if (mounted) setLoading(false);
       }
-      
-      if (mounted) setLoading(false); // Loading dimatiin cuma kalau proses ini beres
     };
 
     initAuth();
 
-    // 2. Fungsi Cek Pas User Mencet Login / Logout
+    // 2. Pantau event Login / Logout tanpa bikin freeze
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Abaikan INITIAL_SESSION karena udah diurus sama initAuth di atas
-      if (event === 'INITIAL_SESSION') return;
-
-      if (mounted) setLoading(true); // Nyalain loading pas proses ganti akun
+      // Kita HAPUS setLoading(true) di sini biar app ga pernah freeze mendadak
       
       const currentUser = session?.user ?? null;
       if (mounted) setUser(currentUser);
 
-      if (currentUser) {
-        // Kalau Login
+      if (event === 'SIGNED_IN' && currentUser) {
         await fetchProfile(currentUser.id);
-      } else {
-        // Kalau Logout
+      } else if (event === 'SIGNED_OUT') {
         if (mounted) setProfile(null);
       }
-
-      if (mounted) setLoading(false); // Matiin loading pas prosesnya tuntas
     });
 
-    // Bersihin listener kalau user tutup webnya
     return () => {
       mounted = false;
       subscription?.unsubscribe();
     };
   }, []);
 
+  // Cek apakah user adalah admin
   const isAdmin = profile?.is_admin === true;
 
   return (
