@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom"; // IMPORT INI
+import { useNavigate } from "react-router-dom"; 
 import { supabase } from "../lib/supabase";
 
 const LoginPage = () => {
-  const navigate = useNavigate(); // INISIALISASI
+  const navigate = useNavigate(); 
   const [isLogin, setIsLogin] = useState(true); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +23,12 @@ const LoginPage = () => {
         if (error) throw error;
         
         // FIX: Pindah halaman secara internal tanpa refresh total
-        // replace: true gunanya biar user ga bisa balik lagi ke page login pake tombol back
-        if (data.user) {
-          navigate("/admin", { replace: true });
+        // Kasih jeda 500ms biar useAuth sempet narik data profile (is_admin) 
+        // sebelum nyampe ke AdminPage
+        if (data?.user) {
+          setTimeout(() => {
+            navigate("/admin", { replace: true });
+          }, 500);
         }
         
       } else {
