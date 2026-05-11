@@ -120,7 +120,7 @@ const TerminalBoot = ({ onDone }) => {
       setTimeout(() => setVisibleLines(i + 1), i * 350 + 100);
     });
     setTimeout(onDone, lines.length * 350 + 600);
-  }, []);
+  }, [onDone]);
 
   return (
     <div
@@ -255,10 +255,10 @@ const CyberpunkLanding = ({ data, onStart }) => {
 const CyberClickGame = ({ onComplete }) => {
   const CLICKS_NEEDED = 5;
   const [clicks, setClicks]   = useState(0);
-  const [pos, setPos]         = useState({ x: 40, y: 45 });
+  const [pos, setPos]          = useState({ x: 40, y: 45 });
   const [trails, setTrails]   = useState([]);
   const [done, setDone]       = useState(false);
-  const isDoneRef             = useRef(false);
+  const isDoneRef              = useRef(false);
 
   const moveBtn = useCallback(() => {
     setPos({ x: 8 + Math.random() * 72, y: 28 + Math.random() * 46 });
@@ -411,4 +411,4 @@ const CyberpunkTheme = ({ data }) => {
   );
 };
 
-export default CyberPunkTheme;
+export default CyberpunkTheme; // FIX: p kecil sesuai deklarasi
