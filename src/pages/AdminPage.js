@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+// FIX: Kita pakai Navigate komponen langsung, bukan useNavigate di dalam useEffect
+import { Navigate } from "react-router-dom"; 
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 
@@ -100,10 +101,8 @@ const VisualSlotEditor = ({ previewUrl, coords, onChange }) => {
 // 2. MAIN ADMIN PAGE
 // ============================================================================
 const AdminPage = () => {
-  const { user, profile, isAdmin, loading } = useAuth();
-  const navigate = useNavigate();
+  const { user, isAdmin, loading } = useAuth();
   
-  const [checking, setChecking] = useState(true); // Tambahan state buat nahan blank screen
   const [activeTab, setActiveTab] = useState("frames"); 
   const [stickers, setStickers] = useState([]);
   const [frames, setFrames] = useState([]);
@@ -123,32 +122,13 @@ const AdminPage = () => {
   const [visualCoords, setVisualCoords] = useState([]);
   const frameFileRef = useRef();
 
-  // ─────────────────────────────────────────────────────────────────
-  // PERBAIKAN LOGIC REDIRECT (ANTI-LOOPING & ANTI-BLANK)
-  // ─────────────────────────────────────────────────────────────────
+  // Ambil data dari database CUMA kalau dia udah dipastikan sebagai admin
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        console.log("Akses Ditolak: Belum Login");
-        navigate("/login", { replace: true });
-      } else if (!isAdmin) {
-        console.log("Akses Ditolak: Bukan Admin!");
-        alert("Kamu bukan Admin! Izin ditolak.");
-        navigate("/", { replace: true });
-      } else {
-        // Kalau lolos semua ujian (Udah login & beneran admin)
-        setChecking(false);
-      }
-    }
-  }, [user, isAdmin, loading, navigate]);
-
-  useEffect(() => {
-    // Jangan nge-fetch data kalau belom lolos pengecekan (biar ga error RLS)
-    if (!checking) {
+    if (!loading && isAdmin) {
       fetchStickers(); 
       fetchFrames();
     }
-  }, [checking]); 
+  }, [loading, isAdmin]); 
 
   // Auto-generate kotak awal kalau slot diganti
   useEffect(() => {
@@ -186,14 +166,11 @@ const AdminPage = () => {
       const fileName = `${Date.now()}-${file.name.replace(/\s/g, "-")}`;
       const path = `stickers/${fileName}`;
 
-      // 1. Upload ke Storage Bucket "stickers"
       const { error: storageErr } = await supabase.storage.from("stickers").upload(path, file);
       if (storageErr) throw storageErr;
 
-      // 2. Ambil Public URL
       const { data: { publicUrl } } = supabase.storage.from("stickers").getPublicUrl(path);
 
-      // 3. Masukin ke DB Tabel "stickers"
       const { error: dbErr } = await supabase.from("stickers").insert({ 
         name: stickerName.trim(), 
         storage_path: path, 
@@ -205,7 +182,7 @@ const AdminPage = () => {
 
       setStickerName(""); 
       stickerFileRef.current.value = "";
-      await fetchStickers(); // Langsung refresh list
+      await fetchStickers(); 
       alert("Stiker berhasil nangkring di server! 🔥");
     } catch (err) { 
         alert(`Gagal: ${err.message}`); 
@@ -240,7 +217,6 @@ const AdminPage = () => {
     try {
       const fileName = `${Date.now()}-${file.name.replace(/\s/g, "-")}`;
       const path = `frames/${fileName}`;
-      // Pake bucket "stickers" biar kumpul jadi satu aset
       await supabase.storage.from("stickers").upload(path, file);
       const { data: { publicUrl } } = supabase.storage.from("stickers").getPublicUrl(path);
 
@@ -270,8 +246,11 @@ const AdminPage = () => {
     fetchFrames();
   };
 
-  // Tampilkan loading screen SEBELUM ngerender isi admin page ATAU saat lagi ngecek akses
-  if (loading || checking) {
+  // =======================================================================
+  // 🛡️ THE ULTIMATE GUARD (ANTI FREEZE / ANTI BLANK)
+  // =======================================================================
+  
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#111] flex flex-col items-center justify-center font-retro">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="text-4xl text-butter mb-4">
@@ -281,6 +260,18 @@ const AdminPage = () => {
       </div>
     );
   }
+
+  // Komponen <Navigate> dari Router ini instan dan ga bakal bikin crash React!
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Kalau sukses nyampe sini, berarti udah pasti 100% ADMIN
+  // =======================================================================
 
   const tabs = [{ id: "frames", label: "📸 Frame Booth" }, { id: "stickers", label: "✦ Stiker Editor" }];
 
@@ -302,11 +293,10 @@ const AdminPage = () => {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* ==================== TAB STIKER ==================== */}
+          {/* TAB STIKER */}
           {activeTab === "stickers" && (
             <motion.div key="stc" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="grid lg:grid-cols-[400px_1fr] gap-8">
               
-              {/* Form Upload */}
               <div className="bg-charcoal p-8 rounded-3xl border border-white/10 h-fit shadow-2xl">
                 <h3 className="font-retro text-2xl text-butter mb-6 border-b border-white/5 pb-4">New Sticker</h3>
                 <div className="space-y-6">
@@ -328,7 +318,6 @@ const AdminPage = () => {
                 </div>
               </div>
 
-              {/* List Koleksi */}
               <div className="bg-charcoal p-8 rounded-3xl border border-white/10 shadow-2xl min-h-[500px]">
                 <h3 className="font-retro text-2xl text-butter border-b border-white/5 mb-8 pb-4">Sticker Library</h3>
                 {stickers.length === 0 ? (
@@ -358,7 +347,7 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {/* ==================== TAB FRAMES ==================== */}
+          {/* TAB FRAMES */}
           {activeTab === "frames" && (
             <motion.div key="frm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="grid lg:grid-cols-[450px_1fr] gap-8">
               
