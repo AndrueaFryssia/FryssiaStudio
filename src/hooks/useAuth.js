@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const AuthContext = createContext({});
@@ -7,18 +7,21 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    let mounted = true;
 
-    const loadData = async () => {
+    // Fungsi tunggal buat sinkronisasi User & Profile biar ga balapan
+    const syncAuth = async () => {
+      if (!mounted) return;
       setLoading(true);
+      
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
+        if (mounted) setUser(currentUser);
 
         if (currentUser) {
           const { data } = await supabase
@@ -26,25 +29,29 @@ export const AuthProvider = ({ children }) => {
             .select("*")
             .eq("id", currentUser.id)
             .single();
-          setProfile(data);
+          if (mounted) setProfile(data);
+        } else {
+          if (mounted) setProfile(null);
         }
       } catch (err) {
-        console.error("Auth error:", err);
+        console.error("Auth sync error:", err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
-    loadData();
+    syncAuth(); // Panggil pas awal web dibuka
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // HANYA refresh atau update kalau ada perubahan user yang beneran (Login/Logout)
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        window.location.reload(); 
-      }
+    // Pantau kalau tiba-tiba login/logout
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'INITIAL_SESSION') return;
+      syncAuth(); // Panggil ulang sinkronisasi
     });
 
-    return () => subscription?.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const isAdmin = profile?.is_admin === true;
